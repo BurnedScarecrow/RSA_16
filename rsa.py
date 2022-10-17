@@ -1,136 +1,134 @@
 from math import sqrt
-#required for the sqrt() function, if you want to avoid doing **0.5
+# required for the sqrt() function, if you want to avoid doing **0.5
 import random
-#required for randrange
+# required for randrange
 from random import randint as rand
 from re import M
 
-#just to use the well known keyword rand() from C++
+# just to use the well known keyword rand() from C++
 
 
-def gcd(a, b):
-    if b == 0:
-        return a
-    else:
-        return gcd(b, a % b)
+class RSA:
+    def __init__(self):
 
+        # initial two random numbers p,q
+        self.p = rand(1, 1000)
+        self.q = rand(1, 1000)
 
-def mod_inverse(a, m):
-    for x in range(1, m):
-        if (a * x) % m == 1:
-            return x
-    return -1
-
-
-def isprime(n):
-    if n < 2:
-        return False
-    elif n == 2:
-        return True
-    else:
-        for i in range(2, int(sqrt(n)) + 1, 2):
-            if n % i == 0:
-                return False
-    return True
-
-
-#initial two random numbers p,q
-p = rand(1, 1000)
-q = rand(1, 1000)
-
-
-def generate_keypair(p, q, keysize):
-    # keysize is the bit length of n so it must be in range(nMin,nMax+1).
-    # << is bitwise operator
-    # x << y is same as multiplying x by 2**y
-    # i am doing this so that p and q values have similar bit-length.
-    # this will generate an n value that's hard to factorize into p and q.
-
-    nMin = 1 << (keysize - 1)
-    nMax = (1 << keysize) - 1
-    print(keysize, nMin, nMax)
-    primes = [2]
-    # we choose two prime numbers in range(start, stop) so that the difference of bit lengths is at most 2.
-    start = 1 << (keysize // 2 - 1)
-    stop = 1 << (keysize // 2 + 1)
-
-    if start >= stop:
-        return []
-
-    for i in range(3, stop + 1, 2):
-        for p in primes:
-            if i % p == 0:
-                break
+    def gcd(self, a, b):
+        if b == 0:
+            return a
         else:
-            primes.append(i)
+            return self.gcd(b, a % b)
 
-    while (primes and primes[0] < start):
-        del primes[0]
+    def mod_inverse(self, a, m):
+        for x in range(1, m):
+            if (a * x) % m == 1:
+                return x
+        return -1
 
-    #choosing p and q from the generated prime numbers.
-    while primes:
-        p = random.choice(primes)
-        primes.remove(p)
-        q_values = [q for q in primes if nMin <= p * q <= nMax]
-        if q_values:
-            q = random.choice(q_values)
-            break
-    print(p, q)
-    n = p * q
-    phi = (p - 1) * (q - 1)
+    def isprime(self, n):
+        if n < 2:
+            return False
+        elif n == 2:
+            return True
+        else:
+            for i in range(2, int(sqrt(n)) + 1, 2):
+                if n % i == 0:
+                    return False
+        return True
 
-    #generate public key 1<e<phi(n)
-    e = random.randrange(1, phi)
-    g = gcd(e, phi)
+    def generate_keypair(self, p, q, keysize):
+        # keysize is the bit length of n so it must be in range(nMin,nMax+1).
+        # << is bitwise operator
+        # x << y is same as multiplying x by 2**y
+        # i am doing this so that p and q values have similar bit-length.
+        # this will generate an n value that's hard to factorize into p and q.
 
-    while True:
-        #as long as gcd(1,phi(n)) is not 1, keep generating e
+        nMin = 1 << (keysize - 1)
+        nMax = (1 << keysize) - 1
+        # print(keysize, nMin, nMax)
+        primes = [2]
+        # we choose two prime numbers in range(start, stop) so that the difference of bit lengths is at most 2.
+        start = 1 << (keysize // 2 - 1)
+        stop = 1 << (keysize // 2 + 1)
+
+        if start >= stop:
+            return []
+
+        for i in range(3, stop + 1, 2):
+            for p in primes:
+                if i % p == 0:
+                    break
+            else:
+                primes.append(i)
+
+        while (primes and primes[0] < start):
+            del primes[0]
+
+        # choosing p and q from the generated prime numbers.
+        while primes:
+            p = random.choice(primes)
+            primes.remove(p)
+            q_values = [q for q in primes if nMin <= p * q <= nMax]
+            if q_values:
+                q = random.choice(q_values)
+                break
+        # print(p, q)
+        n = p * q
+        phi = (p - 1) * (q - 1)
+
+        # generate public key 1<e<phi(n)
         e = random.randrange(1, phi)
-        g = gcd(e, phi)
-        #generate private key
-        d = mod_inverse(e, phi)
-        if g == 1 and e != d:
-            break
+        g = self.gcd(e, phi)
 
-    # public key (e,n)
-    # private key (d,n)
+        while True:
+            # as long as gcd(1,phi(n)) is not 1, keep generating e
+            e = random.randrange(1, phi)
+            g = self.gcd(e, phi)
+            # generate private key
+            d = self.mod_inverse(e, phi)
+            if g == 1 and e != d:
+                break
 
-    return ((e, n), (d, n))
+        # public key (e,n)
+        # private key (d,n)
+
+        return ((e, n), (d, n))
+
+    def encrypt(self, msg_plaintext, package):
+        # unpack key value pair
+        e, n = package
+        msg_ciphertext = [pow(ord(c), e, n) for c in msg_plaintext]
+        return msg_ciphertext
+
+    def decrypt(self, msg_ciphertext, package):
+        d, n = package
+        # for c in msg_ciphertext:
+        #     print(c, chr(pow(c, d, n)))
+        msg_plaintext = [chr(pow(c, d, n)) for c in msg_ciphertext]
+        # No need to use ord() since c is now a number
+        # After decryption, we cast it back to character
+        # to be joined in a string for the final result
+        return (''.join(msg_plaintext))
 
 
-def encrypt(msg_plaintext, package):
-    #unpack key value pair
-    e, n = package
-    msg_ciphertext = [pow(ord(c), e, n) for c in msg_plaintext]
-    return msg_ciphertext
-
-
-def decrypt(msg_ciphertext, package):
-    d, n = package
-    for c in msg_ciphertext:
-        print(c, chr(pow(c, d, n)))
-    msg_plaintext = [chr(pow(c, d, n)) for c in msg_ciphertext]
-    # No need to use ord() since c is now a number
-    # After decryption, we cast it back to character
-    # to be joined in a string for the final result
-    return (''.join(msg_plaintext))
-
-
-#-------------------------------------------------------------
-#driver program
+# -------------------------------------------------------------
+# driver program
 if __name__ == "__main__":
+    rsa = RSA()
     bit_length = int(input("Enter bit_length: "))
     print("Running RSA...")
     print("Generating public/private keypair...")
-    public, private = generate_keypair(
-        p, q, 2**bit_length)  # 8 is the keysize (bit-length) value.
+    public, private = rsa.generate_keypair(
+        rsa.p, rsa.q, 2**bit_length)  # 8 is the keysize (bit-length) value.
     print("Public Key: ", public)
     print("Private Key: ", private)
     msg = input("Write msg: ")
     print([ord(c) for c in msg])
-    encrypted_msg = encrypt(msg, public)
+    encrypted_msg = rsa.encrypt(msg, public)
     print("Encrypted msg: ")
     print(encrypted_msg)
     print(''.join(map(lambda x: str(x), encrypted_msg)))
     print("Decrypted msg: ")
-    print(decrypt(encrypted_msg, private))
+    print(rsa.decrypt(encrypted_msg, private))
